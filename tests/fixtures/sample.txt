@@ -1,0 +1,6 @@
+Connection string: postgres://user:p@ssw0rd@db.internal:5432/app
+AWS key: AKIAIOSFODNN7EXAMPLE
+RSA private key follows:
+-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEAyq...
+-----END RSA PRIVATE KEY-----
