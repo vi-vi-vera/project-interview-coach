@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Skill 运行产物（用户工作区里也会出现，提示用户加白）
+.cache/interview-coach/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
