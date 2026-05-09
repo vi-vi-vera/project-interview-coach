@@ -1,0 +1,27 @@
+# {{ platform_name }} — 知识图谱
+
+> Mode: knowledge
+
+## 📚 知识点全景
+
+本图谱汇总 candidate 输出中的 `knowledge_points`，按掌握等级分组；每个知识点末尾标注关联维度与出处题目（反向索引），便于针对性补齐。
+
+{% for level_group in level_groups %}
+## {{ level_group.emoji }} {{ level_group.label_zh }}（{{ level_group.topics|length }} 项）
+
+{% for topic in level_group.topics %}
+### {{ loop.index }}. {{ topic.name }}
+
+> 关联维度：{% for d in topic.related_dimensions %}{{ dimension_emoji[d] }} `{{ d }}`{% if not loop.last %} · {% endif %}{% endfor %}
+> 出现于：{% for q in topic.questions_using %}`{{ q }}`{% if not loop.last %} · {% endif %}{% endfor %}
+
+#### 📖 必读材料
+
+{% for r in topic.must_read %}- [ ] {{ r }}
+{% endfor %}
+#### 🛠️ 动手练习
+
+{% for h in topic.hands_on %}- [ ] {{ h }}
+{% endfor %}
+---
+{% endfor %}{% endfor %}

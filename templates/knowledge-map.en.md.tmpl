@@ -1,0 +1,27 @@
+# {{ platform_name }} — Knowledge Map
+
+> Mode: knowledge
+
+## 📚 Knowledge overview
+
+Aggregated from the candidate output's `knowledge_points`, grouped by mastery level. Each topic lists related dimensions and the reverse index of source questions, so gaps can be filled efficiently.
+
+{% for level_group in level_groups %}
+## {{ level_group.emoji }} {{ level_group.label_en }} ({{ level_group.topics|length }} topics)
+
+{% for topic in level_group.topics %}
+### {{ loop.index }}. {{ topic.name }}
+
+> Related dimensions: {% for d in topic.related_dimensions %}{{ dimension_emoji[d] }} `{{ d }}`{% if not loop.last %} · {% endif %}{% endfor %}
+> Appears in: {% for q in topic.questions_using %}`{{ q }}`{% if not loop.last %} · {% endif %}{% endfor %}
+
+#### 📖 Must-read
+
+{% for r in topic.must_read %}- [ ] {{ r }}
+{% endfor %}
+#### 🛠️ Hands-on
+
+{% for h in topic.hands_on %}- [ ] {{ h }}
+{% endfor %}
+---
+{% endfor %}{% endfor %}
