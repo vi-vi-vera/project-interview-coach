@@ -1,0 +1,188 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InterviewData",
+  "description": "Stage 3 output contract for project-interview-coach. Currently only the candidate mode is implemented; interviewer/knowledge are reserved.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "mode",
+    "platform_name",
+    "project_pitch",
+    "qa",
+    "dimension_coverage"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "mode": {
+      "type": "string",
+      "enum": ["candidate", "interviewer", "knowledge"]
+    },
+    "platform_name": { "type": "string", "minLength": 1 },
+    "project_pitch": {
+      "type": "object",
+      "required": ["elevator", "standard", "deep_dive"],
+      "properties": {
+        "elevator": { "$ref": "#/definitions/bilingual" },
+        "standard": { "$ref": "#/definitions/bilingual" },
+        "deep_dive": { "$ref": "#/definitions/bilingual" }
+      }
+    },
+    "highlights": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["title", "scope", "primary_dimension", "story"],
+        "properties": {
+          "title": { "type": "string" },
+          "scope": { "$ref": "#/definitions/scope" },
+          "primary_dimension": { "$ref": "#/definitions/primaryDimension" },
+          "story": { "$ref": "#/definitions/bilingual" },
+          "tech_keywords": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "qa": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/qaItem" }
+    },
+    "dimension_coverage": {
+      "type": "object",
+      "required": [
+        "feature",
+        "architecture",
+        "performance",
+        "reliability",
+        "observability",
+        "trade-off",
+        "security"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "feature":       { "type": "integer", "minimum": 0 },
+        "architecture":  { "type": "integer", "minimum": 0 },
+        "performance":   { "type": "integer", "minimum": 0 },
+        "reliability":   { "type": "integer", "minimum": 0 },
+        "observability": { "type": "integer", "minimum": 0 },
+        "trade-off":     { "type": "integer", "minimum": 0 },
+        "security":      { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+
+  "definitions": {
+    "scope": {
+      "type": "string",
+      "enum": ["frontend", "backend", "mobile", "infra", "fullstack"]
+    },
+    "primaryDimension": {
+      "type": "string",
+      "enum": [
+        "feature",
+        "architecture",
+        "performance",
+        "reliability",
+        "observability",
+        "trade-off",
+        "security"
+      ]
+    },
+    "knowledgeLevel": {
+      "type": "string",
+      "enum": ["必须掌握", "加分项"]
+    },
+    "depth": {
+      "type": "string",
+      "enum": ["初级", "中级", "高级"]
+    },
+    "bilingual": {
+      "type": "object",
+      "required": ["zh", "en"],
+      "properties": {
+        "zh": { "type": "string", "minLength": 1 },
+        "en": { "type": "string", "minLength": 1 }
+      }
+    },
+    "qaItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "primary_dimension",
+        "scope",
+        "source_tech_point",
+        "question",
+        "answers",
+        "knowledge_points",
+        "learning_plan",
+        "depth",
+        "evidence"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "primary_dimension": { "$ref": "#/definitions/primaryDimension" },
+        "scope": { "$ref": "#/definitions/scope" },
+        "sub_project": { "type": "string" },
+        "source_tech_point": { "type": "string" },
+        "question": { "$ref": "#/definitions/bilingual" },
+        "answers": {
+          "type": "object",
+          "required": ["elevator", "standard", "deep_dive"],
+          "properties": {
+            "elevator":  { "$ref": "#/definitions/bilingual" },
+            "standard":  { "$ref": "#/definitions/bilingual" },
+            "deep_dive": { "$ref": "#/definitions/bilingual" }
+          }
+        },
+        "knowledge_points": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "level", "why"],
+            "properties": {
+              "name":  { "type": "string", "minLength": 1 },
+              "level": { "$ref": "#/definitions/knowledgeLevel" },
+              "why":   { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "learning_plan": {
+          "type": "object",
+          "required": [
+            "must_read",
+            "hands_on",
+            "common_pitfalls",
+            "mock_questions",
+            "time_estimate"
+          ],
+          "properties": {
+            "must_read":       { "type": "array", "minItems": 1, "items": { "type": "string" } },
+            "hands_on":        { "type": "array", "minItems": 1, "items": { "type": "string" } },
+            "common_pitfalls": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+            "mock_questions":  { "type": "array", "minItems": 1, "items": { "type": "string" } },
+            "time_estimate":   { "type": "string", "minLength": 1 }
+          }
+        },
+        "follow_ups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["question", "primary_dimension", "expected_answer"],
+            "properties": {
+              "question":          { "$ref": "#/definitions/bilingual" },
+              "primary_dimension": { "$ref": "#/definitions/primaryDimension" },
+              "expected_answer":   { "$ref": "#/definitions/bilingual" }
+            }
+          }
+        },
+        "depth": { "$ref": "#/definitions/depth" },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

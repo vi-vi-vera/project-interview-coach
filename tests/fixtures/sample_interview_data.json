@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0",
+  "mode": "candidate",
+  "platform_name": "Sample Platform",
+  "project_pitch": {
+    "elevator": {
+      "zh": "一个用 Claude Agent SDK 搭的企业 AI 编程平台。",
+      "en": "An enterprise AI coding platform built on Claude Agent SDK."
+    },
+    "standard": {
+      "zh": "项目是一个面向企业的 AI 编程平台，前端 React + 后端 NestJS，集成 Claude Agent SDK 与 MCP 工具市场，支持多用户隔离的 Sandbox 在线预览。我主要负责后端的流式通信与缓存层。",
+      "en": "An enterprise AI coding platform with React frontend and NestJS backend, integrating Claude Agent SDK and an MCP tool marketplace, with multi-tenant sandbox live preview. I owned the backend streaming pipeline and caching layer."
+    },
+    "deep_dive": {
+      "zh": "这是一个面向企业内部研发团队的 AI 编程平台，核心是把 Claude Agent SDK 包装成可观测、可治理、可扩展的服务。架构分三层：前端 React + Zustand 提供编辑器与会话 UI，后端 NestJS + Drizzle 提供会话管理与 Agent 调度，沙箱层基于 OpenSandbox 做用户隔离。我主要负责后端两个模块：一是 SSE 流式通信，把 LLM token 流到前端的同时还要写库（防抖批处理 + AbortController 全链路取消，写库次数从 N 降到 N/10）；二是依赖产物缓存（依赖 hash → COS tar.gz，命中率 80% 以上，冷启动从分钟降到秒级）。最大的取舍是没用 WebSocket 而是 SSE：HTTP 半双工足够、调试简单、与 nginx/CDN 兼容。失败教训是早期没关 nginx 的 X-Accel-Buffering，导致流被缓冲住，前端 30 秒后才看到第一个 token。",
+      "en": "An enterprise AI coding platform that wraps Claude Agent SDK into an observable, governable, extensible service. Three layers: React+Zustand editor UI, NestJS+Drizzle session and agent orchestration, OpenSandbox-based per-tenant isolation. I owned two backend modules: SSE streaming with debounced batched DB writes plus end-to-end AbortController propagation (N writes reduced to N/10), and a dependency-artifact cache keyed by lockfile hash backed by COS (>80% hit rate, cold start dropped from minutes to seconds). The key trade-off was choosing SSE over WebSocket: half-duplex was sufficient, debugging is trivial, and it plays well with nginx and CDNs. The most painful lesson was forgetting to disable X-Accel-Buffering, which caused nginx to hold the stream until the response closed."
+    }
+  },
+  "highlights": [
+    {
+      "title": "SSE 流式 + 防抖写库",
+      "scope": "fullstack",
+      "primary_dimension": "performance",
+      "story": {
+        "zh": "原本每个 token 直写 DB，QPS 高时 DB 抖动；引入 200ms debounce + writePromise 串行化后写入次数降为 1/10。",
+        "en": "Originally every token wrote to DB causing spikes; after 200ms debounce and serialized writePromise, write volume dropped 10x."
+      },
+      "tech_keywords": ["SSE", "debounce", "AbortController"]
+    }
+  ],
+  "qa": [
+    {
+      "id": "q-01",
+      "primary_dimension": "performance",
+      "scope": "backend",
+      "sub_project": "backagent",
+      "source_tech_point": "tp-12",
+      "question": {
+        "zh": "你是怎么解决 SSE 流式输出和数据库写入冲突的？",
+        "en": "How did you resolve the conflict between SSE streaming output and database persistence?"
+      },
+      "answers": {
+        "elevator": {
+          "zh": "200ms debounce 把 chunk 合并批写，写库次数从 N 降到 N/10。",
+          "en": "200ms debounce batches chunks before flushing, cutting DB writes from N to N/10."
+        },
+        "standard": {
+          "zh": "原始实现是每个 chunk 直写 DB，高 QPS 下 DB 抖动严重。我引入 200ms debounce 把同一 messageId 的 chunk 在内存中累积合并，再用 writePromise 串行化避免乱序。同时全链路接 AbortController：前端关闭页面时后端立刻短路所有 IO。配合 Redis resumable-stream 做断点续传，僵死流由 probeActiveStream 兜底清理。最终写库次数降到原来 1/10，TTFT 也更稳定。",
+          "en": "The naive design wrote every chunk to DB, hammering Postgres under load. I introduced a 200ms debounce that aggregates chunks for the same messageId in memory and a serialized writePromise to keep ordering. AbortController is wired end-to-end so when the client closes the tab the backend short-circuits all IO. Redis-backed resumable-stream provides reconnect, with probeActiveStream cleaning zombie streams. DB writes dropped 10x and TTFT became markedly more stable."
+        },
+        "deep_dive": {
+          "zh": "这个问题的本质是 SSE 的 token 流速度（数百 chunk/秒）远高于关系数据库的合理写入频率，直接 1:1 写库会让 wal 抖动并拖慢响应。我的方案是分三层：第一层在 controller 用 200ms debounce 累积 chunk，到点合并成一次 update，写入次数降到原来 1/10；第二层用 writePromise = writePromise.then(...) 串行化，避免 debounce 触发时多个 update 并发乱序；第三层挂 AbortController，前端关页面或主动取消时所有写库 task 立刻中止，不浪费连接。再向外是 Redis resumable-stream 做断点续传（TTL 1 小时），probeActiveStream 兜底处理客户端崩溃留下的僵死流。最大的取舍是没用消息队列：评估过 BullMQ，但发现写库瓶颈不在吞吐而在事务粒度，引入队列反而增加 Redis 写放大；在我们的体量（单实例 QPS 数百）下，进程内 debounce 已经够。失败教训是初版没设 writePromise，debounce 触发瞬间多次 fire 导致 messages 表里的 content 字段偶发顺序错乱，回滚后才发现是 Promise 没串起来——这条教训让我把『流式写库』列为 code review 时必看项。",
+          "en": "The root issue: SSE token rate (hundreds of chunks per second) vastly exceeds reasonable RDBMS write frequency; 1:1 writes thrash WAL and slow responses. My layered design: (1) a 200ms debounce in the controller aggregates chunks per messageId into a single UPDATE — 10x fewer writes; (2) a writePromise = writePromise.then(...) chain serializes flushes so debounce fires never race; (3) an AbortController is plumbed everywhere so a client disconnect short-circuits all IO. Outside that, Redis resumable-stream (TTL 1h) supports reconnect, and probeActiveStream sweeps zombie streams left by client crashes. The deliberate trade-off was avoiding a queue (BullMQ): the bottleneck was transaction granularity, not throughput; queues would add Redis write amplification with no payoff at our scale (a few hundred QPS per instance). Hard lesson: the first version lacked writePromise serialization, and parallel debounce flushes occasionally interleaved chunks in the content column. After that incident I made 'streaming-to-DB' a permanent code-review checklist item."
+        }
+      },
+      "knowledge_points": [
+        {
+          "name": "SSE 协议规范",
+          "level": "必须掌握",
+          "why": "面试官会问你为什么 SSE 而不是 WebSocket；要能讲清半双工/HTTP 兼容性"
+        },
+        {
+          "name": "debounce vs throttle 语义差异",
+          "level": "必须掌握",
+          "why": "面试官常拿这个考察你对节流策略的理解，写错会被追问"
+        },
+        {
+          "name": "Postgres WAL 与事务粒度",
+          "level": "加分项",
+          "why": "讲清楚为什么高频写会抖动可以让面试官刮目相看"
+        }
+      ],
+      "learning_plan": {
+        "must_read": [
+          "MDN: Server-sent events",
+          "RFC 6455 (WebSocket，用于对比)"
+        ],
+        "hands_on": [
+          "用 30 行 Express 写一个最小 SSE demo，前端用 EventSource 接收"
+        ],
+        "common_pitfalls": [
+          "nginx 默认开启 buffer 导致流不动 → 必须设 X-Accel-Buffering: no",
+          "EventSource 不支持自定义 header；要带 token 就得用 fetchEventSource"
+        ],
+        "mock_questions": [
+          "如果客户端关闭页面，后端怎么知道？要不要清理资源？",
+          "SSE 怎么做断点续传？",
+          "为什么不用 WebSocket？什么场景必须用 WebSocket？"
+        ],
+        "time_estimate": "半天"
+      },
+      "follow_ups": [
+        {
+          "question": {
+            "zh": "为什么不用 WebSocket？",
+            "en": "Why not WebSocket?"
+          },
+          "primary_dimension": "trade-off",
+          "expected_answer": {
+            "zh": "SSE 半双工足够（服务端推、客户端只发起请求），HTTP 兼容性好（nginx/CDN/浏览器），调试用 curl 即可。WebSocket 全双工的代价是协议升级、心跳、代理支持都要单独处理。",
+            "en": "SSE half-duplex suffices (server pushes, client only initiates), HTTP-friendly (nginx/CDN/browser), debuggable with curl. WebSocket's full-duplex costs include protocol upgrade, heartbeats, and bespoke proxy support."
+          }
+        }
+      ],
+      "depth": "中级",
+      "evidence": [
+        "backagent/src/api/controllers/agent-new.controller.ts",
+        "backagent/src/services/streamManager.ts"
+      ]
+    }
+  ],
+  "dimension_coverage": {
+    "feature": 0,
+    "architecture": 0,
+    "performance": 1,
+    "reliability": 0,
+    "observability": 0,
+    "trade-off": 0,
+    "security": 0
+  }
+}
