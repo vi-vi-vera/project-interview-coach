@@ -43,7 +43,47 @@ def test_tech_points_evidence_required():
         "points": [
             {
                 "id": "x", "topic": "t", "scope": "backend",
+                "primary_dimension": "feature",
                 "evidence": [], "interview_value": "高",
+            }
+        ],
+    }
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(bad, schema)
+
+
+def test_tech_points_primary_dimension_required():
+    schema = json.loads(
+        (ROOT / "schemas" / "tech-points.schema.json").read_text()
+    )
+    bad = {
+        "schema_version": "1.0",
+        "role": "后端",
+        "level": "中级",
+        "points": [
+            {
+                "id": "x", "topic": "t", "scope": "backend",
+                "evidence": ["src/main.ts"], "interview_value": "高",
+            }
+        ],
+    }
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(bad, schema)
+
+
+def test_tech_points_primary_dimension_enum_enforced():
+    schema = json.loads(
+        (ROOT / "schemas" / "tech-points.schema.json").read_text()
+    )
+    bad = {
+        "schema_version": "1.0",
+        "role": "后端",
+        "level": "中级",
+        "points": [
+            {
+                "id": "x", "topic": "t", "scope": "backend",
+                "primary_dimension": "made-up",
+                "evidence": ["src/main.ts"], "interview_value": "高",
             }
         ],
     }

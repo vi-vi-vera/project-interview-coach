@@ -11,13 +11,17 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "topic", "scope", "evidence", "interview_value"],
+        "required": ["id", "topic", "scope", "primary_dimension", "evidence", "interview_value"],
         "properties": {
           "id": { "type": "string" },
           "topic": { "type": "string" },
           "scope": {
             "type": "string",
             "enum": ["frontend", "backend", "mobile", "infra", "fullstack"]
+          },
+          "primary_dimension": {
+            "type": "string",
+            "enum": ["feature", "architecture", "performance", "reliability", "observability", "trade-off", "security"]
           },
           "sub_project": { "type": "string" },
           "evidence": {

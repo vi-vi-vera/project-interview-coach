@@ -7,6 +7,7 @@
       "id": "tp-01",
       "topic": "依赖注入",
       "scope": "backend",
+      "primary_dimension": "architecture",
       "evidence": ["src/main.ts"],
       "interview_value": "高"
     }
