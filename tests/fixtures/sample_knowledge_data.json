@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "mode": "knowledge",
+  "platform_name": "Sample Platform",
+  "knowledge_map": {
+    "topics": [
+      {
+        "name": "SSE 协议规范",
+        "level": "必须掌握",
+        "related_dimensions": ["architecture", "performance"],
+        "questions_using": ["q-01", "q-04"],
+        "must_read": [
+          "MDN: Server-sent events",
+          "@microsoft/fetch-event-source README"
+        ],
+        "hands_on": [
+          "用 30 行 Express 写最小 SSE demo，观察 nginx buffering 关闭前后差异"
+        ]
+      },
+      {
+        "name": "Promise 多消费者语义",
+        "level": "加分项",
+        "related_dimensions": ["performance"],
+        "questions_using": ["q-03"],
+        "must_read": [
+          "MDN: Promise 章节"
+        ],
+        "hands_on": [
+          "实现一个 inflight Map，故意 throw 看 finally 没 delete 的后果"
+        ]
+      }
+    ]
+  }
+}

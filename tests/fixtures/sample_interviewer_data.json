@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "mode": "interviewer",
+  "platform_name": "Sample Platform",
+  "question_bank": [
+    {
+      "id": "iq-01",
+      "primary_dimension": "performance",
+      "scope": "backend",
+      "source_tech_point": "tp-12",
+      "question": {
+        "zh": "怎么解决 SSE 流式输出和数据库写入冲突？",
+        "en": "How would you resolve the conflict between SSE streaming output and database persistence?"
+      },
+      "depth": "中级",
+      "stress_probes": [
+        {
+          "question": {
+            "zh": "如果 debounce 没串行化会发生什么？你怎么知道？",
+            "en": "What happens if debounce flushes are not serialized? How would you detect it?"
+          },
+          "primary_dimension": "reliability"
+        }
+      ],
+      "evidence": [
+        "backagent/src/api/controllers/agent-new.controller.ts",
+        "backagent/src/services/streamManager.ts"
+      ]
+    }
+  ],
+  "rubrics": [
+    {
+      "qa_id": "iq-01",
+      "criteria": [
+        {
+          "name": "技术正确性",
+          "weight": 0.4,
+          "indicators": {
+            "优秀": {
+              "zh": "讲清楚 debounce + writePromise 串行化 + AbortController 三层，且能解释每一层为什么必要",
+              "en": "Explains debounce + writePromise serialization + AbortController as three layers and justifies each"
+            },
+            "合格": {
+              "zh": "提到 debounce 和批写，但未涉及串行化或中止传播",
+              "en": "Mentions debounce and batched writes but misses serialization or abort propagation"
+            },
+            "不合格": {
+              "zh": "只说『加缓存』『加队列』之类泛泛回答",
+              "en": "Vague answers like 'add caching' or 'use a queue' without specifics"
+            }
+          }
+        },
+        {
+          "name": "取舍意识",
+          "weight": 0.3,
+          "indicators": {
+            "优秀": {
+              "zh": "主动解释为什么不用消息队列、不同体量下取舍会变",
+              "en": "Proactively explains why not a queue and how the trade-off shifts at different scales"
+            },
+            "合格": {
+              "zh": "被追问后能给出一个合理的备选方案对比",
+              "en": "After probing, gives a reasonable alternative comparison"
+            },
+            "不合格": {
+              "zh": "无法说出任何替代方案",
+              "en": "Cannot articulate any alternative"
+            }
+          }
+        },
+        {
+          "name": "失败教训复盘能力",
+          "weight": 0.3,
+          "indicators": {
+            "优秀": {
+              "zh": "能讲出具体踩坑经历（如 writePromise 漏掉导致乱序）和事后改进",
+              "en": "Recalls a concrete incident (e.g. missing writePromise causing interleaving) and the follow-up fix"
+            },
+            "合格": {
+              "zh": "能讲出一类典型坑但缺乏个人经历",
+              "en": "Names a typical pitfall class without personal context"
+            },
+            "不合格": {
+              "zh": "声称没踩过坑或一切顺利",
+              "en": "Claims no incidents or 'all went smoothly'"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
