@@ -1,0 +1,91 @@
+# {{ platform_name }} — 面试备战材料
+
+> Mode: candidate · Role: {{ role }} · Level: {{ level }}
+
+## 📊 维度覆盖统计
+
+| 维度 | 数量 | emoji |
+|---|---|---|
+| feature       | {{ dimension_coverage.feature }}      | 🧩 |
+| architecture  | {{ dimension_coverage.architecture }} | 🏗️ |
+| performance   | {{ dimension_coverage.performance }}  | ⚡ |
+| reliability   | {{ dimension_coverage.reliability }}  | 🛡️ |
+| observability | {{ dimension_coverage.observability }}| 📈 |
+| trade-off     | {{ dimension_coverage["trade-off"] }} | ⚖️ |
+| security      | {{ dimension_coverage.security }}     | 🔒 |
+
+## 🎯 项目自我介绍
+
+### 一句话（简历版）
+
+{{ project_pitch.elevator.zh }}
+
+### 标准（30–60 秒）
+
+{{ project_pitch.standard.zh }}
+
+### 深挖（2–3 分钟）
+
+<details><summary>展开</summary>
+
+{{ project_pitch.deep_dive.zh }}
+
+</details>
+{% if highlights %}
+## ✨ 项目亮点
+
+{% for h in highlights %}- **{{ h.title }}**（{{ h.primary_dimension }} · {{ h.scope }}）
+  {{ h.story.zh }}
+{% if h.tech_keywords %}  > 关键词：{% for kw in h.tech_keywords %}`{{ kw }}`{% if not loop.last %} · {% endif %}{% endfor %}
+{% endif %}{% endfor %}{% endif %}
+{% for group in groups %}
+## {{ group.emoji }} {{ group.label_zh }}（{{ group.dimension }}）— {{ group.qa|length }} 题
+{% for qa in group.qa %}
+### Q{{ loop.index }}. {{ qa.question.zh }}
+
+> 来源：`{{ qa.source_tech_point }}` · scope: {{ qa.scope }}{% if qa.sub_project %} · {{ qa.sub_project }}{% endif %} · 难度: {{ qa.depth }}
+
+#### 知识点
+
+| 名称 | 等级 | 为什么会问 |
+|---|---|---|
+{% for kp in qa.knowledge_points %}| {{ kp.name }} | {{ kp.level }} | {{ kp.why }} |
+{% endfor %}
+#### 三档回答
+
+**🟢 一句话**：{{ qa.answers.elevator.zh }}
+
+**🔵 标准**（默认）：
+
+{{ qa.answers.standard.zh }}
+
+<details><summary>🔴 深挖（点击展开）</summary>
+
+{{ qa.answers.deep_dive.zh }}
+
+</details>
+
+#### 补齐方案
+
+- 📚 必读
+{% for r in qa.learning_plan.must_read %}  - [ ] {{ r }}
+{% endfor %}- 🛠️ 动手
+{% for h in qa.learning_plan.hands_on %}  - [ ] {{ h }}
+{% endfor %}- ⚠️ 常见踩坑
+{% for p in qa.learning_plan.common_pitfalls %}  - {{ p }}
+{% endfor %}- 🤔 自测题（合上文档自答）
+{% for m in qa.learning_plan.mock_questions %}  - [ ] {{ m }}
+{% endfor %}- ⏱️ 预估学习时长：**{{ qa.learning_plan.time_estimate }}**
+{% if qa.follow_ups %}
+#### 追问（面试官深挖向）
+{% for f in qa.follow_ups %}
+- ⚖️ **{{ f.question.zh }}**（{{ f.primary_dimension }}）
+  > {{ f.expected_answer.zh }}
+{% endfor %}{% endif %}
+
+#### Evidence
+
+{% for e in qa.evidence %}- `{{ e }}`
+{% endfor %}
+---
+{% endfor %}{% endfor %}

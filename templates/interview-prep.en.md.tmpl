@@ -1,0 +1,91 @@
+# {{ platform_name }} — Interview Preparation
+
+> Mode: candidate · Role: {{ role }} · Level: {{ level }}
+
+## 📊 Dimension coverage
+
+| Dimension | Count | Emoji |
+|---|---|---|
+| feature       | {{ dimension_coverage.feature }}      | 🧩 |
+| architecture  | {{ dimension_coverage.architecture }} | 🏗️ |
+| performance   | {{ dimension_coverage.performance }}  | ⚡ |
+| reliability   | {{ dimension_coverage.reliability }}  | 🛡️ |
+| observability | {{ dimension_coverage.observability }}| 📈 |
+| trade-off     | {{ dimension_coverage["trade-off"] }} | ⚖️ |
+| security      | {{ dimension_coverage.security }}     | 🔒 |
+
+## 🎯 Project pitch
+
+### Elevator (resume-sized)
+
+{{ project_pitch.elevator.en }}
+
+### Standard (30–60 seconds)
+
+{{ project_pitch.standard.en }}
+
+### Deep dive (2–3 minutes)
+
+<details><summary>Expand</summary>
+
+{{ project_pitch.deep_dive.en }}
+
+</details>
+{% if highlights %}
+## ✨ Highlights
+
+{% for h in highlights %}- **{{ h.title }}** ({{ h.primary_dimension }} · {{ h.scope }})
+  {{ h.story.en }}
+{% if h.tech_keywords %}  > Keywords: {% for kw in h.tech_keywords %}`{{ kw }}`{% if not loop.last %} · {% endif %}{% endfor %}
+{% endif %}{% endfor %}{% endif %}
+{% for group in groups %}
+## {{ group.emoji }} {{ group.label_en }} ({{ group.dimension }}) — {{ group.qa|length }} Q&A
+{% for qa in group.qa %}
+### Q{{ loop.index }}. {{ qa.question.en }}
+
+> Source: `{{ qa.source_tech_point }}` · scope: {{ qa.scope }}{% if qa.sub_project %} · {{ qa.sub_project }}{% endif %} · depth: {{ qa.depth }}
+
+#### Knowledge points
+
+| Name | Level | Why it matters |
+|---|---|---|
+{% for kp in qa.knowledge_points %}| {{ kp.name }} | {{ kp.level }} | {{ kp.why }} |
+{% endfor %}
+#### Tiered answers
+
+**🟢 Elevator**: {{ qa.answers.elevator.en }}
+
+**🔵 Standard** (default):
+
+{{ qa.answers.standard.en }}
+
+<details><summary>🔴 Deep dive (click to expand)</summary>
+
+{{ qa.answers.deep_dive.en }}
+
+</details>
+
+#### Learning plan
+
+- 📚 Must-read
+{% for r in qa.learning_plan.must_read %}  - [ ] {{ r }}
+{% endfor %}- 🛠️ Hands-on
+{% for h in qa.learning_plan.hands_on %}  - [ ] {{ h }}
+{% endfor %}- ⚠️ Common pitfalls
+{% for p in qa.learning_plan.common_pitfalls %}  - {{ p }}
+{% endfor %}- 🤔 Self-check questions (answer without notes)
+{% for m in qa.learning_plan.mock_questions %}  - [ ] {{ m }}
+{% endfor %}- ⏱️ Estimated time: **{{ qa.learning_plan.time_estimate }}**
+{% if qa.follow_ups %}
+#### Follow-ups (interviewer deep probes)
+{% for f in qa.follow_ups %}
+- ⚖️ **{{ f.question.en }}** ({{ f.primary_dimension }})
+  > {{ f.expected_answer.en }}
+{% endfor %}{% endif %}
+
+#### Evidence
+
+{% for e in qa.evidence %}- `{{ e }}`
+{% endfor %}
+---
+{% endfor %}{% endfor %}
