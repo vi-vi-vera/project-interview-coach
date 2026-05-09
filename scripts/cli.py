@@ -19,6 +19,7 @@ import json
 import sys
 from pathlib import Path
 
+from scripts.aggregate_knowledge import aggregate_knowledge
 from scripts.collect_project_meta import DEPTH_LEVELS, collect
 from scripts.render_markdown import render
 
@@ -59,6 +60,35 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="directory containing Jinja2 templates")
     r.add_argument("--out", required=True, type=Path,
                    help="output directory for the rendered markdown")
+
+    # ----- aggregate (Python replacement for stage3-knowledge LLM call) --
+    a = sub.add_parser(
+        "aggregate",
+        help="Aggregate a candidate-mode JSON into a knowledge-mode JSON "
+             "(pure Python, no LLM).",
+    )
+    a.add_argument("--data", required=True, type=Path,
+                   help="path to candidate-mode interview-data.json")
+    a.add_argument("--out", required=True, type=Path,
+                   help="output path for the knowledge-mode JSON")
+
+    # ----- run (one-shot aggregate + render for knowledge mode) ---------
+    run_p = sub.add_parser(
+        "run",
+        help="End-to-end pipeline. Currently only --mode knowledge is "
+             "supported (candidate/interviewer need LLM stages outside "
+             "Python).",
+    )
+    run_p.add_argument("--mode", required=True, choices=["knowledge"],
+                       help="pipeline mode; knowledge is the only fully "
+                            "Python-implementable mode today")
+    run_p.add_argument("--data", required=True, type=Path,
+                       help="path to candidate-mode interview-data.json")
+    run_p.add_argument("--templates", required=True, type=Path,
+                       help="directory containing Jinja2 templates")
+    run_p.add_argument("--out", required=True, type=Path,
+                       help="output directory (will receive both the "
+                            "intermediate JSON and the rendered markdown)")
 
     return p
 
@@ -101,9 +131,62 @@ def _cmd_render(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_aggregate(args: argparse.Namespace) -> int:
+    candidate = json.loads(args.data.read_text(encoding="utf-8"))
+    try:
+        kb = aggregate_knowledge(candidate)
+    except ValueError as e:
+        print(f"aggregate failed: {e}", file=sys.stderr)
+        return 2
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(
+        json.dumps(kb, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(f"Wrote: {args.out}")
+    return 0
+
+
+def _cmd_run(args: argparse.Namespace) -> int:
+    # argparse restricts --mode to {"knowledge"} today; leaving this explicit
+    # so the error message is readable if we ever loosen the choice list.
+    if args.mode != "knowledge":
+        print(
+            f"run --mode={args.mode!r} not supported: only 'knowledge' "
+            "can run without an LLM.",
+            file=sys.stderr,
+        )
+        return 2
+
+    candidate = json.loads(args.data.read_text(encoding="utf-8"))
+    try:
+        kb = aggregate_knowledge(candidate)
+    except ValueError as e:
+        print(f"aggregate failed: {e}", file=sys.stderr)
+        return 2
+
+    args.out.mkdir(parents=True, exist_ok=True)
+    kb_path = args.out / "knowledge-data.json"
+    kb_path.write_text(
+        json.dumps(kb, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    zh, en = render(
+        interview_data_path=kb_path,
+        template_dir=args.templates,
+        output_dir=args.out,
+    )
+    print(f"Wrote: {kb_path}")
+    print(f"Wrote: {zh}")
+    print(f"Wrote: {en}")
+    return 0
+
+
 _DISPATCH = {
     "scan": _cmd_scan,
     "render": _cmd_render,
+    "aggregate": _cmd_aggregate,
+    "run": _cmd_run,
 }
 
 

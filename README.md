@@ -45,7 +45,8 @@ interview-prep/
 ## CLI
 
 A unified `coach` entry wraps the Python-side scripts. LLM-driven stages
-(1→2→3) live outside Python and are orchestrated by the calling agent.
+(candidate/interviewer) are orchestrated by the calling agent; knowledge
+mode is pure aggregation and runs fully in Python.
 
 ```bash
 # 1) Scan workspace → emit redacted JSON bundle (input to stage 1)
@@ -56,12 +57,28 @@ python -m scripts.cli render \
   --data interview-data.json \
   --templates ./templates \
   --out ./interview-prep
+
+# 3) Aggregate a candidate JSON → knowledge JSON (no LLM, deterministic)
+python -m scripts.cli aggregate \
+  --data candidate-interview-data.json \
+  --out knowledge-data.json
+
+# 4) One-shot knowledge pipeline: aggregate + render
+python -m scripts.cli run --mode knowledge \
+  --data candidate-interview-data.json \
+  --templates ./templates \
+  --out ./interview-prep
 ```
 
 `coach scan` accepts `--depth {light,medium,deep}` and `--projects auto|<csv>`.
 `coach render` works for all three modes (candidate / interviewer / knowledge);
 the renderer dispatches by `data.mode`. Word-budget lint warnings (candidate
 mode only) are printed to stderr.
+
+`coach aggregate` implements `prompts/stage3-knowledge.md` §§A–D in pure
+Python — zero hallucination, diff-stable, regression-tested. Conservative
+by design: follows the prompt's normalization rules literally and does not
+do "smart" merges (e.g. parenthetical extensions remain distinct topics).
 
 ## Development
 
