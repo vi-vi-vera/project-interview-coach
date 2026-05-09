@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +50,95 @@ _DIMENSION_EMOJI = {
     "security":      "🔒",
     "trade-off":     "⚖️",
 }
+
+
+# ---------------------------------------------------------------------------
+# Word-budget lint (candidate mode only).
+#
+# Budget rules mirror prompts/stage3-candidate.md §C. These are SOFT limits:
+# lint_word_budget() returns a list of human-readable warnings, and render()
+# prints them to stderr but still produces the files. The rationale: an LLM
+# that's 10% over budget is still usable output; silently accepting it,
+# however, means the user never finds out. Visible warnings strike the balance.
+# ---------------------------------------------------------------------------
+
+# (lo, hi) per tier. Upper bound of elevator is intentionally `None` on the
+# floor side (i.e. no floor — one sentence is fine).
+_TIER_BUDGETS_ZH: dict[str, tuple[int | None, int]] = {
+    "elevator":  (None, 50),
+    "standard":  (150, 300),
+    "deep_dive": (500, 800),
+}
+_TIER_BUDGETS_EN: dict[str, tuple[int | None, int]] = {
+    "elevator":  (None, 30),
+    "standard":  (80, 180),
+    "deep_dive": (250, 450),
+}
+
+# CJK unified ideographs + extension A. Matches the prompt's "CJK code points"
+# definition. Punctuation, ASCII, whitespace intentionally excluded.
+_CJK_RE = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf]")
+
+
+def _count_cjk(text: str) -> int:
+    return len(_CJK_RE.findall(text))
+
+
+def _count_en_words(text: str) -> int:
+    return len(text.split())
+
+
+def _check_tier(path: str, tier: str, bilingual: dict[str, str]) -> list[str]:
+    """Check one {elevator|standard|deep_dive} bilingual block against the budget."""
+    warnings: list[str] = []
+    zh_lo, zh_hi = _TIER_BUDGETS_ZH[tier]
+    en_lo, en_hi = _TIER_BUDGETS_EN[tier]
+
+    zh_count = _count_cjk(bilingual.get("zh", ""))
+    if zh_lo is not None and zh_count < zh_lo:
+        warnings.append(f"{path}.{tier}.zh: {zh_count} CJK chars (below floor {zh_lo})")
+    elif zh_count > zh_hi:
+        warnings.append(f"{path}.{tier}.zh: {zh_count} CJK chars (above ceiling {zh_hi})")
+
+    en_count = _count_en_words(bilingual.get("en", ""))
+    if en_lo is not None and en_count < en_lo:
+        warnings.append(f"{path}.{tier}.en: {en_count} words (below floor {en_lo})")
+    elif en_count > en_hi:
+        warnings.append(f"{path}.{tier}.en: {en_count} words (above ceiling {en_hi})")
+
+    return warnings
+
+
+def lint_word_budget(data: dict[str, Any]) -> list[str]:
+    """Validate candidate-mode answer word budgets; return a list of warning strings.
+
+    Only applies to `mode == "candidate"`. For interviewer / knowledge modes, the
+    concept doesn't apply — returns [] unconditionally.
+
+    Checked fields:
+    - `project_pitch.{elevator,standard,deep_dive}.{zh,en}`
+    - each `qa[i].answers.{elevator,standard,deep_dive}.{zh,en}`
+
+    The warning format is deliberately grep-friendly, e.g.:
+        "qa[0].answers.standard.en: 40 words (below floor 80)"
+    """
+    if data.get("mode", "candidate") != "candidate":
+        return []
+
+    warnings: list[str] = []
+
+    pitch = data.get("project_pitch", {})
+    for tier in ("elevator", "standard", "deep_dive"):
+        if tier in pitch:
+            warnings.extend(_check_tier("project_pitch", tier, pitch[tier]))
+
+    for i, qa in enumerate(data.get("qa", [])):
+        answers = qa.get("answers", {})
+        for tier in ("elevator", "standard", "deep_dive"):
+            if tier in answers:
+                warnings.extend(_check_tier(f"qa[{i}].answers", tier, answers[tier]))
+
+    return warnings
 
 
 def _schema_path() -> Path:
@@ -188,6 +279,17 @@ def _render_candidate(
     env: Environment,
     output_dir: Path,
 ) -> tuple[Path, Path]:
+    # Soft lint: print warnings to stderr but don't block rendering.
+    # lint_word_budget() is also exposed for programmatic callers / tests.
+    budget_warnings = lint_word_budget(data)
+    if budget_warnings:
+        print(
+            f"[render_markdown] word-budget lint: {len(budget_warnings)} warning(s):",
+            file=sys.stderr,
+        )
+        for w in budget_warnings:
+            print(f"  - {w}", file=sys.stderr)
+
     groups = _group_qa(data.get("qa", []))
     context = {
         **data,
