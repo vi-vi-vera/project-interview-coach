@@ -42,10 +42,32 @@ interview-prep/
 └── interview-data.json   # see schemas/interview-data.schema.json
 ```
 
+## CLI
+
+A unified `coach` entry wraps the Python-side scripts. LLM-driven stages
+(1→2→3) live outside Python and are orchestrated by the calling agent.
+
+```bash
+# 1) Scan workspace → emit redacted JSON bundle (input to stage 1)
+python -m scripts.cli scan --workspace . --depth medium > bundle.json
+
+# 2) Render a stage-3 interview-data.json → bilingual markdown
+python -m scripts.cli render \
+  --data interview-data.json \
+  --templates ./templates \
+  --out ./interview-prep
+```
+
+`coach scan` accepts `--depth {light,medium,deep}` and `--projects auto|<csv>`.
+`coach render` works for all three modes (candidate / interviewer / knowledge);
+the renderer dispatches by `data.mode`. Word-budget lint warnings (candidate
+mode only) are printed to stderr.
+
 ## Development
 
 ```bash
-python -m pytest tests/test_redact.py -v
+python -m pytest                   # full suite
+python -m pytest tests/test_cli.py # CLI subset
 ```
 
 ## License
