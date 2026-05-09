@@ -1,0 +1,34 @@
+# {{ platform_name }} — 面试官出题包
+
+> Mode: interviewer · Role: {{ role }} · Level: {{ level }}
+
+> 本材料用于面试官在面试中抽题与评分。**不含标准答案**——评分依靠每题对应的 rubric。
+{% for group in groups %}
+## {{ group.emoji }} {{ group.label_zh }}（{{ group.dimension }}）— {{ group.questions|length }} 题
+{% for q in group.questions %}
+### Q{{ loop.index }}. {{ q.question.zh }}
+
+> id: `{{ q.id }}` · 来源 tech-point: `{{ q.source_tech_point }}` · scope: {{ q.scope }}{% if q.sub_project %} · {{ q.sub_project }}{% endif %} · 难度: {{ q.depth }}
+
+#### Evidence
+
+{% for e in q.evidence %}- `{{ e }}`
+{% endfor %}
+{% if q.stress_probes %}
+#### 压力追问（候选人答得太顺时用）
+
+{% for p in q.stress_probes %}- ⚖️ **{{ p.question.zh }}**（{{ p.primary_dimension }}）
+{% endfor %}{% endif %}
+{% if rubrics_by_qa[q.id] %}
+#### 评分卡
+
+| 维度 | 权重 | 优秀 | 合格 | 不合格 |
+|---|---|---|---|---|
+{% for c in rubrics_by_qa[q.id].criteria %}| {{ c.name }} | {{ "%.2f"|format(c.weight) }} | {{ c.indicators["优秀"].zh }} | {{ c.indicators["合格"].zh }} | {{ c.indicators["不合格"].zh }} |
+{% endfor %}
+> 权重合计：**{{ "%.2f"|format(rubrics_by_qa[q.id].weight_sum) }}**（建议落在 1.00 ± 0.05；偏离请人工复核）
+{% else %}
+> ⚠️ 此题缺少 rubric——请补全后再使用。
+{% endif %}
+---
+{% endfor %}{% endfor %}

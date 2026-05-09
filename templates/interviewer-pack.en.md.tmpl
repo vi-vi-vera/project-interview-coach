@@ -1,0 +1,34 @@
+# {{ platform_name }} — Interviewer Question Pack
+
+> Mode: interviewer · Role: {{ role }} · Level: {{ level }}
+
+> For interviewer use during the session: pick questions and score with the rubric. **No model answers** — scoring relies on the rubric attached to each question.
+{% for group in groups %}
+## {{ group.emoji }} {{ group.label_en }} ({{ group.dimension }}) — {{ group.questions|length }} questions
+{% for q in group.questions %}
+### Q{{ loop.index }}. {{ q.question.en }}
+
+> id: `{{ q.id }}` · source tech-point: `{{ q.source_tech_point }}` · scope: {{ q.scope }}{% if q.sub_project %} · {{ q.sub_project }}{% endif %} · depth: {{ q.depth }}
+
+#### Evidence
+
+{% for e in q.evidence %}- `{{ e }}`
+{% endfor %}
+{% if q.stress_probes %}
+#### Stress probes (use when the candidate answers too smoothly)
+
+{% for p in q.stress_probes %}- ⚖️ **{{ p.question.en }}** ({{ p.primary_dimension }})
+{% endfor %}{% endif %}
+{% if rubrics_by_qa[q.id] %}
+#### Rubric
+
+| Criterion | Weight | Excellent | Pass | Fail |
+|---|---|---|---|---|
+{% for c in rubrics_by_qa[q.id].criteria %}| {{ c.name }} | {{ "%.2f"|format(c.weight) }} | {{ c.indicators["优秀"].en }} | {{ c.indicators["合格"].en }} | {{ c.indicators["不合格"].en }} |
+{% endfor %}
+> Weight sum: **{{ "%.2f"|format(rubrics_by_qa[q.id].weight_sum) }}** (target 1.00 ± 0.05; review manually if it deviates).
+{% else %}
+> ⚠️ No rubric attached for this question — please complete before use.
+{% endif %}
+---
+{% endfor %}{% endfor %}
