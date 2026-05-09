@@ -110,6 +110,43 @@ def _group_topics_by_level(topics: list[dict[str, Any]]) -> list[dict[str, Any]]
     return groups
 
 
+def _group_questions(questions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Bucket interviewer-mode question_bank items by primary_dimension in canonical order.
+
+    Mirrors `_group_qa` but emits the field name `questions` (matching the template),
+    and sorts only by id (interviewer questions have no interview_value field).
+    """
+    buckets: dict[str, list[dict[str, Any]]] = {m["dimension"]: [] for m in DIMENSION_META}
+    for q in questions:
+        dim = q.get("primary_dimension")
+        if dim in buckets:
+            buckets[dim].append(q)
+
+    for items in buckets.values():
+        items.sort(key=lambda q: q.get("id", ""))
+
+    groups: list[dict[str, Any]] = []
+    for meta in DIMENSION_META:
+        items = buckets[meta["dimension"]]
+        if not items:
+            continue
+        groups.append({**meta, "questions": items})
+    return groups
+
+
+def _index_rubrics_by_qa(rubrics: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Index rubrics by qa_id and pre-compute weight_sum for template display.
+
+    Returns: { qa_id: { ...rubric, "weight_sum": float } }.
+    Done in Python (not Jinja2) because Jinja's sum filter on nested attributes is awkward.
+    """
+    indexed: dict[str, dict[str, Any]] = {}
+    for r in rubrics:
+        weight_sum = sum(c.get("weight", 0) for c in r.get("criteria", []))
+        indexed[r["qa_id"]] = {**r, "weight_sum": weight_sum}
+    return indexed
+
+
 def render(
     interview_data_path: Path,
     template_dir: Path,
@@ -140,6 +177,8 @@ def render(
 
     if mode == "knowledge":
         return _render_knowledge(data, env, output_dir)
+    if mode == "interviewer":
+        return _render_interviewer(data, env, output_dir)
     # default: candidate mode
     return _render_candidate(data, env, output_dir)
 
@@ -162,6 +201,31 @@ def _render_candidate(
 
     zh_path = output_dir / "interview-prep.zh.md"
     en_path = output_dir / "interview-prep.en.md"
+    zh_path.write_text(zh_tmpl.render(**context), encoding="utf-8")
+    en_path.write_text(en_tmpl.render(**context), encoding="utf-8")
+    return zh_path, en_path
+
+
+def _render_interviewer(
+    data: dict[str, Any],
+    env: Environment,
+    output_dir: Path,
+) -> tuple[Path, Path]:
+    groups = _group_questions(data.get("question_bank", []))
+    rubrics_by_qa = _index_rubrics_by_qa(data.get("rubrics", []))
+    context = {
+        **data,
+        "groups": groups,
+        "rubrics_by_qa": rubrics_by_qa,
+        "role": data.get("role", ""),
+        "level": data.get("level", ""),
+    }
+
+    zh_tmpl = env.get_template("interviewer-pack.zh.md.tmpl")
+    en_tmpl = env.get_template("interviewer-pack.en.md.tmpl")
+
+    zh_path = output_dir / "interviewer-pack.zh.md"
+    en_path = output_dir / "interviewer-pack.en.md"
     zh_path.write_text(zh_tmpl.render(**context), encoding="utf-8")
     en_path.write_text(en_tmpl.render(**context), encoding="utf-8")
     return zh_path, en_path
