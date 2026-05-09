@@ -32,6 +32,23 @@ DIMENSION_META: list[dict[str, str]] = [
 # interview_value weight for intra-group ordering.
 _VALUE_WEIGHT = {"高": 0, "中": 1, "低": 2}
 
+# knowledge-map level ordering: 必须掌握 first, 加分项 last.
+_LEVEL_META: list[dict[str, str]] = [
+    {"level": "必须掌握", "emoji": "🔑", "label_zh": "必须掌握", "label_en": "Must master"},
+    {"level": "加分项",   "emoji": "✨", "label_zh": "加分项",   "label_en": "Bonus"},
+]
+
+# dimension → emoji lookup for knowledge-map topic badges.
+_DIMENSION_EMOJI = {
+    "architecture":  "🏗️",
+    "feature":       "🧩",
+    "performance":   "⚡",
+    "reliability":   "🛡️",
+    "observability": "📈",
+    "security":      "🔒",
+    "trade-off":     "⚖️",
+}
+
 
 def _schema_path() -> Path:
     return Path(__file__).resolve().parents[1] / "schemas" / "interview-data.schema.json"
@@ -69,6 +86,30 @@ def _group_qa(qa_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return groups
 
 
+def _group_topics_by_level(topics: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Bucket knowledge_map.topics by level in canonical order (必须掌握 → 加分项).
+
+    Within each level, topics are sorted by name for stable output.
+    Empty levels are skipped.
+    """
+    buckets: dict[str, list[dict[str, Any]]] = {m["level"]: [] for m in _LEVEL_META}
+    for topic in topics:
+        lvl = topic.get("level")
+        if lvl in buckets:
+            buckets[lvl].append(topic)
+
+    for items in buckets.values():
+        items.sort(key=lambda t: t.get("name", ""))
+
+    groups: list[dict[str, Any]] = []
+    for meta in _LEVEL_META:
+        items = buckets[meta["level"]]
+        if not items:
+            continue
+        groups.append({**meta, "topics": items})
+    return groups
+
+
 def render(
     interview_data_path: Path,
     template_dir: Path,
@@ -88,14 +129,27 @@ def render(
         jsonschema.ValidationError: if interview_data_path fails schema validation.
     """
     data = _load_and_validate(interview_data_path)
-    groups = _group_qa(data.get("qa", []))
+    mode = data.get("mode", "candidate")
 
     env = Environment(
         loader=FileSystemLoader(str(template_dir)),
         keep_trailing_newline=True,
         autoescape=False,
     )
+    output_dir.mkdir(parents=True, exist_ok=True)
 
+    if mode == "knowledge":
+        return _render_knowledge(data, env, output_dir)
+    # default: candidate mode
+    return _render_candidate(data, env, output_dir)
+
+
+def _render_candidate(
+    data: dict[str, Any],
+    env: Environment,
+    output_dir: Path,
+) -> tuple[Path, Path]:
+    groups = _group_qa(data.get("qa", []))
     context = {
         **data,
         "groups": groups,
@@ -103,13 +157,34 @@ def render(
         "level": data.get("level", ""),
     }
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-
     zh_tmpl = env.get_template("interview-prep.zh.md.tmpl")
     en_tmpl = env.get_template("interview-prep.en.md.tmpl")
 
     zh_path = output_dir / "interview-prep.zh.md"
     en_path = output_dir / "interview-prep.en.md"
+    zh_path.write_text(zh_tmpl.render(**context), encoding="utf-8")
+    en_path.write_text(en_tmpl.render(**context), encoding="utf-8")
+    return zh_path, en_path
+
+
+def _render_knowledge(
+    data: dict[str, Any],
+    env: Environment,
+    output_dir: Path,
+) -> tuple[Path, Path]:
+    topics = data.get("knowledge_map", {}).get("topics", [])
+    level_groups = _group_topics_by_level(topics)
+    context = {
+        **data,
+        "level_groups": level_groups,
+        "dimension_emoji": _DIMENSION_EMOJI,
+    }
+
+    zh_tmpl = env.get_template("knowledge-map.zh.md.tmpl")
+    en_tmpl = env.get_template("knowledge-map.en.md.tmpl")
+
+    zh_path = output_dir / "knowledge-map.zh.md"
+    en_path = output_dir / "knowledge-map.en.md"
     zh_path.write_text(zh_tmpl.render(**context), encoding="utf-8")
     en_path.write_text(en_tmpl.render(**context), encoding="utf-8")
     return zh_path, en_path
