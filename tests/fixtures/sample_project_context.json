@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "platform_name": "demo-platform",
+  "sub_projects": [
+    { "name": "backagent", "path": "backagent", "scope": "backend" }
+  ]
+}

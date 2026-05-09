@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "role": "后端",
+  "level": "中级",
+  "points": [
+    {
+      "id": "tp-01",
+      "topic": "依赖注入",
+      "scope": "backend",
+      "evidence": ["src/main.ts"],
+      "interview_value": "高"
+    }
+  ]
+}
