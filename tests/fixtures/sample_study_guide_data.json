@@ -1,0 +1,106 @@
+{
+  "schema_version": "1.0",
+  "mode": "study-guide",
+  "platform_name": "Sample Platform",
+  "study_guide": {
+    "phases": [
+      { "id": "A", "theme": "Web 基础底座", "cluster_ids": ["q-01"] },
+      { "id": "B", "theme": "并发与状态", "cluster_ids": ["q-03"] },
+      { "id": "C", "theme": "性能与运行时", "cluster_ids": ["q-04"] }
+    ],
+    "clusters": [
+      {
+        "id": "q-01",
+        "title": "SSE 流式推送 与 fetch-event-source",
+        "scenario": "ChatGPT 那种逐字蹦字的效果背后，就是 SSE。",
+        "prerequisites": [
+          {
+            "text": "知道 HTTP 请求/响应；用过 fetch",
+            "url": "https://developer.mozilla.org/zh-CN/docs/Web/API/Fetch_API/Using_Fetch"
+          }
+        ],
+        "must_read": [
+          {
+            "title": "MDN: Using server-sent events",
+            "url": "https://developer.mozilla.org/zh-CN/docs/Web/API/Server-sent_events/Using_server-sent_events"
+          },
+          {
+            "title": "WHATWG HTML Living Standard - Server-Sent Events",
+            "url": "https://html.spec.whatwg.org/multipage/server-sent-events.html"
+          }
+        ],
+        "hands_on": [
+          "用 Express 写 30 行 SSE demo，支持 Last-Event-ID 续接",
+          "把 demo 接到本地 nginx 反代后面，验证 X-Accel-Buffering 关闭后流式首字节"
+        ],
+        "self_check": [
+          "为什么 SSE 报文必须以 \\n\\n 结尾？",
+          "为什么 SSE 在 nginx 后默认会卡住不流？",
+          "选 SSE 不选 WebSocket 的 3 个理由是什么？"
+        ],
+        "covered_topics": ["SSE 协议规范"]
+      },
+      {
+        "id": "q-03",
+        "title": "Promise 多消费者语义",
+        "scenario": "多个调用方同时拿同一个 Promise 时，结果怎么不互相干扰。",
+        "must_read": [
+          {
+            "title": "MDN: Promise",
+            "url": "https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise"
+          },
+          {
+            "title": "MDN: Promise.then 多次调用语义",
+            "url": "https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise/then"
+          }
+        ],
+        "hands_on": [
+          "实现一个 inflight Map，故意 throw 看 finally 没 delete 的后果",
+          "对比 Promise.all 与单独 await 在多消费者场景下的内存与性能差异"
+        ],
+        "self_check": [
+          "同一个 Promise 被两个消费者 await，回调触发顺序怎么算？",
+          "inflight Map 没在 finally 里清理会出什么问题？",
+          "为什么 Promise.all 不能直接当并发限制器？"
+        ],
+        "covered_topics": ["Promise 多消费者语义"]
+      },
+      {
+        "id": "q-04",
+        "title": "性能优化与采样",
+        "scenario": "首屏卡顿先从哪里下手判断瓶颈在 JS 还是网络。",
+        "must_read": [
+          {
+            "title": "MDN: Performance API",
+            "url": "https://developer.mozilla.org/zh-CN/docs/Web/API/Performance_API"
+          },
+          {
+            "title": "web.dev: Optimize LCP",
+            "url": "https://web.dev/articles/optimize-lcp"
+          }
+        ],
+        "hands_on": [
+          "用 Performance.now 给一段疑似耗时函数打点，看 P50/P95",
+          "用 Chrome DevTools Performance 面板录一次首屏，识别 long task"
+        ],
+        "self_check": [
+          "P50 和 P95 在性能优化里各自意味着什么？",
+          "什么是 long task，为什么 50ms 是阈值？",
+          "LCP 比 TTI 多解释了哪些用户感知？"
+        ],
+        "covered_topics": ["SSE 协议规范"]
+      }
+    ],
+    "global_self_check": [
+      { "cluster_id": "q-01", "question": "SSE 报文为什么必须 \\n\\n 结尾？" },
+      { "cluster_id": "q-03", "question": "inflight Map 没 delete 会怎么样？" },
+      { "cluster_id": "q-04", "question": "P50 和 P95 哪个更能代表用户感受？" }
+    ],
+    "tips": [
+      "先做 demo 再读规范：每个簇都从最小可运行开始",
+      "Windows 同学：sandbox / nginx / shell 部分强烈建议在 WSL2 里做",
+      "每周写一篇 200 字小结：是最便宜的检索机制",
+      "卡住超过 30 分钟就先记下来跳过，下个簇做完再回头看"
+    ]
+  }
+}

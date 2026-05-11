@@ -280,6 +280,8 @@ def render(
         return _render_knowledge(data, env, output_dir)
     if mode == "interviewer":
         return _render_interviewer(data, env, output_dir)
+    if mode == "study-guide":
+        return _render_study_guide(data, env, output_dir)
     # default: candidate mode
     return _render_candidate(data, env, output_dir)
 
@@ -361,6 +363,51 @@ def _render_knowledge(
 
     zh_path = output_dir / "knowledge-map.zh.md"
     en_path = output_dir / "knowledge-map.en.md"
+    zh_path.write_text(zh_tmpl.render(**context), encoding="utf-8")
+    en_path.write_text(en_tmpl.render(**context), encoding="utf-8")
+    return zh_path, en_path
+
+
+def _build_phase_groups(study_guide: dict[str, Any]) -> list[dict[str, Any]]:
+    """Resolve `phases[].cluster_ids` into the actual cluster objects.
+
+    Templates iterate `phase_groups -> phase.clusters -> cluster`, which is
+    awkward to express directly in Jinja2 from the raw schema shape. Doing the
+    join here keeps the templates flat. Unknown cluster ids are skipped
+    silently — the schema's structural validation already gates correctness;
+    silent skip avoids a render-time crash on a slightly mis-authored JSON.
+    """
+    by_id: dict[str, dict[str, Any]] = {
+        c["id"]: c for c in study_guide.get("clusters", [])
+    }
+    out: list[dict[str, Any]] = []
+    for phase in study_guide.get("phases", []):
+        clusters = [by_id[cid] for cid in phase.get("cluster_ids", []) if cid in by_id]
+        out.append({
+            "id": phase.get("id", ""),
+            "theme": phase.get("theme", ""),
+            "clusters": clusters,
+        })
+    return out
+
+
+def _render_study_guide(
+    data: dict[str, Any],
+    env: Environment,
+    output_dir: Path,
+) -> tuple[Path, Path]:
+    sg = data.get("study_guide", {})
+    phase_groups = _build_phase_groups(sg)
+    context = {
+        **data,
+        "phase_groups": phase_groups,
+    }
+
+    zh_tmpl = env.get_template("study-guide.zh.md.tmpl")
+    en_tmpl = env.get_template("study-guide.en.md.tmpl")
+
+    zh_path = output_dir / "study-guide.zh.md"
+    en_path = output_dir / "study-guide.en.md"
     zh_path.write_text(zh_tmpl.render(**context), encoding="utf-8")
     en_path.write_text(en_tmpl.render(**context), encoding="utf-8")
     return zh_path, en_path

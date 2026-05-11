@@ -1,0 +1,56 @@
+# {{ platform_name }} — 零基础学习指引
+
+> 配套文档：`knowledge-map.zh.md`
+> 适合人群：会写一点 JS/TS，但对项目里的关键概念还停留在「听过没做过」的同学
+> 目标：跟着做完，覆盖知识图谱里的所有知识点
+
+---
+
+## 0. 怎么使用这份指引
+
+按 **阶段 → 簇** 的顺序往下走。每个簇都包含一段「真实场景」、一组必读材料（外链可点）、若干动手练习和 3 道自检。
+
+每天定 1–2 个簇做完，先做 demo 再看规范；每个簇做完用末尾的「自检」给自己打分。所有问题都答得上来再进入下一个簇。
+
+| 阶段 | 簇 | 关键词 |
+|---|---|---|
+{% for phase in phase_groups %}| 阶段 {{ phase.id }}：{{ phase.theme }} | {% for c in phase.clusters %}`{{ c.id }}`{% if not loop.last %} · {% endif %}{% endfor %} | {% for c in phase.clusters %}{{ c.title }}{% if not loop.last %}；{% endif %}{% endfor %} |
+{% endfor %}
+---
+{% for phase in phase_groups %}
+## 阶段 {{ phase.id }}：{{ phase.theme }}
+{% for cluster in phase.clusters %}
+### 簇 {{ loop.index }}（{{ cluster.id }}）：{{ cluster.title }}
+
+**覆盖知识点**：{% for t in cluster.covered_topics %}{{ t }}{% if not loop.last %}、{% endif %}{% endfor %}
+
+**真实场景**：{{ cluster.scenario }}
+{% if cluster.prerequisites %}
+#### 0-1 零基础前置
+
+{% for p in cluster.prerequisites %}- {{ p.text }}{% if p.url %} —— 入门链接：[doc]({{ p.url }}){% endif %}
+{% endfor %}{% endif %}
+#### 必读材料
+
+{% for m in cluster.must_read %}{{ loop.index }}. [{{ m.title }}]({{ m.url }})
+{% endfor %}
+#### 动手练习
+
+{% for h in cluster.hands_on %}- {{ h }}
+{% endfor %}
+#### 自检
+
+{% for q in cluster.self_check %}- [ ] {{ q }}
+{% endfor %}
+---
+{% endfor %}{% endfor %}
+## 全局自检：{{ study_guide.global_self_check|length }} 个一句话问题
+
+{% for item in study_guide.global_self_check %}{{ loop.index }}. （{{ item.cluster_id }}）{{ item.question }}
+{% endfor %}
+---
+
+## 学习效率 Tips
+
+{% for t in study_guide.tips %}- {{ t }}
+{% endfor %}

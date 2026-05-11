@@ -8,7 +8,7 @@
     "schema_version": { "type": "string" },
     "mode": {
       "type": "string",
-      "enum": ["candidate", "interviewer", "knowledge"]
+      "enum": ["candidate", "interviewer", "knowledge", "study-guide"]
     },
     "platform_name": { "type": "string", "minLength": 1 },
     "role":  { "type": "string" },
@@ -82,6 +82,105 @@
           "items": { "$ref": "#/definitions/knowledgeTopic" }
         }
       }
+    },
+
+    "study_guide": {
+      "type": "object",
+      "required": ["phases", "clusters", "global_self_check", "tips"],
+      "properties": {
+        "phases": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "required": ["id", "theme", "cluster_ids"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[A-Z]$" },
+              "theme": { "type": "string", "minLength": 2, "maxLength": 40 },
+              "cluster_ids": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "clusters": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "required": [
+              "id", "title", "scenario", "must_read",
+              "hands_on", "self_check", "covered_topics"
+            ],
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string", "minLength": 2, "maxLength": 80 },
+              "scenario": { "type": "string", "minLength": 6, "maxLength": 200 },
+              "prerequisites": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["text"],
+                  "properties": {
+                    "text": { "type": "string" },
+                    "url": { "type": "string", "format": "uri" }
+                  }
+                }
+              },
+              "must_read": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 6,
+                "items": {
+                  "type": "object",
+                  "required": ["title", "url"],
+                  "properties": {
+                    "title": { "type": "string" },
+                    "url": { "type": "string", "format": "uri", "pattern": "^https?://" }
+                  }
+                }
+              },
+              "hands_on": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 4,
+                "items": { "type": "string", "minLength": 8 }
+              },
+              "self_check": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": { "type": "string" }
+              },
+              "covered_topics": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "global_self_check": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["cluster_id", "question"],
+            "properties": {
+              "cluster_id": { "type": "string" },
+              "question": { "type": "string" }
+            }
+          }
+        },
+        "tips": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 8,
+          "items": { "type": "string", "minLength": 8 }
+        }
+      }
     }
   },
 
@@ -97,6 +196,21 @@
     {
       "if":   { "properties": { "mode": { "const": "knowledge" } } },
       "then": { "required": ["knowledge_map"] }
+    },
+    {
+      "if":   { "properties": { "mode": { "const": "study-guide" } } },
+      "then": {
+        "required": ["study_guide"],
+        "not": {
+          "anyOf": [
+            { "required": ["qa"] },
+            { "required": ["dimension_coverage"] },
+            { "required": ["project_pitch"] },
+            { "required": ["highlights"] },
+            { "required": ["knowledge_map"] }
+          ]
+        }
+      }
     }
   ],
 

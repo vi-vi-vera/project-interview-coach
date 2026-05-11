@@ -1,0 +1,56 @@
+# {{ platform_name }} — Beginner Study Guide
+
+> Companion: `knowledge-map.en.md`
+> Audience: you can write a little JS/TS, but most of the project's core concepts still feel like "heard of, never built"
+> Goal: by following this guide end to end, you cover every topic in the knowledge map
+
+---
+
+## 0. How to use this guide
+
+Walk down phase by phase, cluster by cluster. Each cluster gives you a real-world scenario, a list of must-read links (clickable), a few hands-on exercises, and three self-check questions.
+
+Aim for one or two clusters per day. Do the hands-on first, then the spec. Use the self-check at the end of each cluster to gate yourself; only move on once you can answer all three.
+
+| Phase | Clusters | Keywords |
+|---|---|---|
+{% for phase in phase_groups %}| Phase {{ phase.id }}: {{ phase.theme }} | {% for c in phase.clusters %}`{{ c.id }}`{% if not loop.last %} · {% endif %}{% endfor %} | {% for c in phase.clusters %}{{ c.title }}{% if not loop.last %}; {% endif %}{% endfor %} |
+{% endfor %}
+---
+{% for phase in phase_groups %}
+## Phase {{ phase.id }}: {{ phase.theme }}
+{% for cluster in phase.clusters %}
+### Cluster {{ loop.index }} ({{ cluster.id }}): {{ cluster.title }}
+
+**Covered topics**: {% for t in cluster.covered_topics %}{{ t }}{% if not loop.last %}, {% endif %}{% endfor %}
+
+**Scenario**: {{ cluster.scenario }}
+{% if cluster.prerequisites %}
+#### 0-1 Prerequisites
+
+{% for p in cluster.prerequisites %}- {{ p.text }}{% if p.url %} — entry link: [doc]({{ p.url }}){% endif %}
+{% endfor %}{% endif %}
+#### Must Read
+
+{% for m in cluster.must_read %}{{ loop.index }}. [{{ m.title }}]({{ m.url }})
+{% endfor %}
+#### Hands-On
+
+{% for h in cluster.hands_on %}- {{ h }}
+{% endfor %}
+#### Self Check
+
+{% for q in cluster.self_check %}- [ ] {{ q }}
+{% endfor %}
+---
+{% endfor %}{% endfor %}
+## Global Self Check: {{ study_guide.global_self_check|length }} one-line questions
+
+{% for item in study_guide.global_self_check %}{{ loop.index }}. ({{ item.cluster_id }}) {{ item.question }}
+{% endfor %}
+---
+
+## Learning Tips
+
+{% for t in study_guide.tips %}- {{ t }}
+{% endfor %}
