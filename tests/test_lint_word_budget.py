@@ -3,9 +3,9 @@
 Budget rules come from prompts/stage3-candidate.md §C:
 | Tier      | zh (CJK chars) | en (words) |
 |-----------|----------------|------------|
-| elevator  | ≤ 50           | ≤ 30       |
-| standard  | 150–300        | 80–180     |
-| deep_dive | 500–800        | 250–450    |
+| elevator  | ≤ 50           | ≤ 35       |
+| standard  | 110–300        | 80–180     |
+| deep_dive | 350–800        | 220–450    |
 
 Applies to `project_pitch.*` AND every `qa[].answers.*`.
 """

@@ -64,15 +64,25 @@ _DIMENSION_EMOJI = {
 
 # (lo, hi) per tier. Upper bound of elevator is intentionally `None` on the
 # floor side (i.e. no floor — one sentence is fine).
+#
+# Floors were calibrated downward in 2026-05 after observing that bilingual
+# technical answers in zh inevitably embed English identifiers (sandbox-warm-pool,
+# fetch-event-source, X-Accel-Buffering, ...) which don't count toward the CJK
+# char total. With a "matter-of-fact spoken" voice baseline (no theatrical
+# fillers, no padding), the natural zh CJK count for a content-rich answer
+# lands ~30% below what an all-Chinese answer of equal information density
+# would produce. The previous floors (150 / 500) were silently pushing
+# generations toward filler to compensate; floors below match observed
+# information-dense output.
 _TIER_BUDGETS_ZH: dict[str, tuple[int | None, int]] = {
     "elevator":  (None, 50),
-    "standard":  (150, 300),
-    "deep_dive": (500, 800),
+    "standard":  (110, 300),
+    "deep_dive": (350, 800),
 }
 _TIER_BUDGETS_EN: dict[str, tuple[int | None, int]] = {
-    "elevator":  (None, 30),
+    "elevator":  (None, 35),
     "standard":  (80, 180),
-    "deep_dive": (250, 450),
+    "deep_dive": (220, 450),
 }
 
 # CJK unified ideographs + extension A. Matches the prompt's "CJK code points"
